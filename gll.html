@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+
+<head>
+    <title>种群密度计算模拟</title>
+</head>
+<style>
+    .normal {
+        width: 300px;
+        height: 300px;
+        text-align: center;
+        /* border: 1px solid black; */
+        margin-top: 10px;
+    }
+
+    #result {
+        display: flex;
+    }
+
+    .mock {
+        margin-left: 10px;
+        position: relative;
+    }
+
+    .calResult {
+        color: red;
+    }
+
+    .resultTable {
+        margin-top: 50px;
+    }
+
+    table,
+    td,
+    th {
+        border: 1px solid green;
+        font-size: 14px;
+    }
+
+    th {
+        background-color: green;
+        color: white;
+    }
+
+    .finalResult {
+        margin-top: 60px;
+        margin-left: 320px;
+    }
+</style>
+
+<body>
+    <h1>种群密度计算模拟系统</h1>
+    <input placeholder="采样面积(百平方米)" id="area"></input>
+    <input placeholder="采样数量" id="number"></input>
+    <button id="submit">开始取样</button>
+    <div id="result">
+        <div class="init normal">
+            <div class="initScatterplot"></div>
+            <div>某地一枝黄花种群密度示意图(300m*300m)</div>
+        </div>
+    </div>
+    <div class="finalResult">计算结果:</div>
+    <table class="resultTable">
+    </table>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <!-- <script src="./newData.js"></script> -->
+    <script type="text/javascript">
+
+        //Width and height
+        var w = 300;
+        var h = 300;
+        // dataset = dataset.map(item => item.map(x => Math.abs(x) * 200));
+        // console.log(dataset.length)
+        const randomX = d3.randomNormal(150, 80);
+        const randomY = d3.randomNormal(150, 80);
+        const dataset = Array.from({ length: 1500 }, () => [randomX(), randomY()]);
+        // 数据处理
+        //Create SVG element
+        var svg = d3.select(".initScatterplot")
+            .append("svg")
+            .attr("width", w)
+            .attr("height", h);
+
+        svg.selectAll("circle")
+            .data(dataset)
+            .enter()
+            .append("circle")
+            .attr("cx", function (d) {
+                return d[0];
+            })
+            .attr("cy", function (d) {
+                return d[1];
+            })
+            .attr("r", function (d) {
+                //return Math.sqrt(h - d[1]);
+                return 2;
+            })
+            .attr("fill", "black");
+
+    </script>
+    <script>
+        document.getElementById('submit').addEventListener('click', function () {
+            if (document.getElementsByClassName('mock').length > 0) {
+                document.getElementById('result').removeChild(document.getElementsByClassName('mock')[0]);
+            }
+            var area = document.getElementById('area').value;
+            var number = document.getElementById('number').value;
+            if (Number(area) * Number(number)> 900) {
+                window.alert('超出范围啦')
+                return;
+            }
+            var result = document.getElementById('result');
+            var init = document.getElementsByClassName('init')[0];
+            var initCopy = init.cloneNode(true);
+            initCopy.className += ' mock';
+            const obj = {};
+
+            // 绘制矩形框
+            for (let i = 0; i < number; i++) {
+                const width = Math.sqrt(area) * 10;
+                const height = Math.sqrt(area) * 10;
+                const rect = document.createElement('div');
+                rect.className = 'rect';
+                let left = 0;
+                let top = 0;
+                let sum = 300 / width;
+                let randomLeft = Math.floor(Math.random(0, 1) * sum) * width;
+                let randomTop = Math.floor(Math.random(0, 1) * sum) * width;
+                left = left + randomLeft;
+                top = top + randomTop;
+                if (!obj['' + left + "_" + top]) {
+                    console.log('' + left + "_" + top);
+                    rect.setAttribute('style', `width:${width}px;height:${height}px;border:1px solid red;position:absolute;left: ${left}px;top:${top}px`);
+                    initCopy.appendChild(rect)
+                    obj['' + left + "_" + top] = 1;
+                } else {
+                    console.log('继续')
+                    i--;
+                }
+                console.log(obj);
+
+            }
+            result.appendChild(initCopy);
+            const rect = document.querySelectorAll('.rect');
+            console.log(rect);
+            // 框的拖拽效果实现
+            rect.forEach((item, index) => {
+                const calResult = calNum(item);
+                const calResultDom = document.createElement('div');
+                calResultDom.className = `calResult calResult${index}`;
+                calResultDom.innerHTML = calResult;
+                item.appendChild(calResultDom);
+                item.addEventListener('mousedown', e => {
+                    const x = e.pageX - item.offsetLeft;
+                    const y = e.pageY - item.offsetTop;
+                    document.addEventListener('mousemove', move);
+                    function move(e) {
+                        item.style.left = e.pageX - x + 'px';
+                        item.style.top = e.pageY - y + 'px';
+                        // 重新计算
+                        const calResult = calNum(item);
+                        document.getElementsByClassName(`calResult${index}`)[0].innerHTML = calResult;
+                        showResult();
+                    }
+                    document.addEventListener('mouseup', () => {
+                        document.removeEventListener('mousemove', move);
+                    })
+                })
+            });
+            showResult();
+
+
+            // 计算框中有多少种群
+            function calNum(rect) {
+                const rectOffsetLeft = rect.offsetLeft;
+                const rectOffsetTop = rect.offsetTop;
+                // 框的框高
+                const max = Math.sqrt(area) * 10;
+                let dotNums = [];
+
+                dataset.forEach(item => {
+                    if (item[0] > rectOffsetLeft && item[0] < rectOffsetLeft + max && item[1] > rectOffsetTop && item[1] < rectOffsetTop + max) {
+                        dotNums.push(item);
+                    }
+                });
+                return dotNums.length;
+            }
+            function showResult() {
+                const calResult = document.getElementsByClassName('calResult');
+                let sum = []
+                for (let i = 0; i < calResult.length; i++) {
+                    sum.push(Number(calResult[i].innerHTML));
+                }
+                const sumString = sum.join('+');
+                const sumNumber = sum.reduce((a, b) => a + b);
+                let finalResult = Math.floor(90000 * (sumNumber / (area * 100 * number)));
+                document.getElementsByClassName('finalResult')[0].innerHTML = `统计结果: 90000*(${sumString}/(${area}00 * ${number})) = ${finalResult}`
+            }
+
+
+        });
+
+    </script>
+</body>
+
+</html>
