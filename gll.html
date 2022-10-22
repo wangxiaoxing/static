@@ -166,8 +166,25 @@
                     document.addEventListener('mouseup', () => {
                         document.removeEventListener('mousemove', move);
                     })
+                });
+                 item.addEventListener('touchstart', e => {
+                    const x = e.pageX - item.offsetLeft;
+                    const y = e.pageY - item.offsetTop;
+                    document.addEventListener('touchmove', move);
+                    function move(e) {
+                        item.style.left = e.pageX - x + 'px';
+                        item.style.top = e.pageY - y + 'px';
+                        // 重新计算
+                        const calResult = calNum(item);
+                        document.getElementsByClassName(`calResult${index}`)[0].innerHTML = calResult;
+                        showResult();
+                    }
+                    document.addEventListener('touchend', () => {
+                        document.removeEventListener('mousemove', move);
+                    })
                 })
             });
+            
             showResult();
 
 
